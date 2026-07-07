@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Thread</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <h2>CSP</h2>
+            <p>Email AI Agent</p>
+
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/mock-provider/emails">Mock Provider API</a>
+                <a href="/docs">API Docs</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header>
+                <h1>Email Thread</h1>
+                <p>Thread ID: {{ thread_id }}</p>
+            </header>
+
+            {% for email in emails %}
+                <section class="panel">
+                    <h2>{{ email.subject }}</h2>
+
+                    <p><strong>Sender:</strong> {{ email.sender }} &lt;{{ email.sender_email }}&gt;</p>
+                    <p><strong>Recipient:</strong> {{ email.recipient_email }}</p>
+                    <p><strong>Date:</strong> {{ email.date }}</p>
+                    <p><strong>Reviewed:</strong> {{ email.reviewed }}</p>
+
+                    <p><strong>Body:</strong></p>
+                    <p>{{ email.body }}</p>
+
+                    <a href="/emails/{{ email.id }}">Open This Email</a>
+                </section>
+            {% endfor %}
+        </main>
+    </div>
+
+</body>
+</html>

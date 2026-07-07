@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audit Logs</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <h2>CSP</h2>
+            <p>Email AI Agent</p>
+
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/audit-logs">Audit Logs</a>
+                <a href="/mock-provider/emails">Mock Provider API</a>
+                <a href="/docs">API Docs</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header>
+                <h1>Audit Logs</h1>
+                <p>Recorded prompts, matched emails, timestamps, and user actions.</p>
+            </header>
+
+            <section class="panel">
+                <h2>System Activity</h2>
+
+                {% if logs %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Event Type</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for log in logs %}
+                            <tr>
+                                <td>{{ log.timestamp }}</td>
+                                <td>{{ log.event_type }}</td>
+                                <td>
+                                    <pre>{{ log.details }}</pre>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p>No audit logs found.</p>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+
+</body>
+</html>

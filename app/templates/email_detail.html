@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Details</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+    <div class="layout">
+        <aside class="sidebar">
+            <h2>CSP</h2>
+            <p>Email AI Agent</p>
+
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/mock-provider/emails">Mock Provider API</a>
+                <a href="/docs">API Docs</a>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <header>
+                <h1>Email Details</h1>
+                <p>Open and review the full email content.</p>
+            </header>
+
+            <section class="panel">
+                <h2>{{ email.subject }}</h2>
+
+                <p><strong>Sender:</strong> {{ email.sender }} &lt;{{ email.sender_email }}&gt;</p>
+                <p><strong>Recipient:</strong> {{ email.recipient_email }}</p>
+                <p><strong>Date:</strong> {{ email.date }}</p>
+                <p><strong>Thread ID:</strong> {{ email.thread_id }}</p>
+
+                <p>
+                    <strong>Reviewed:</strong>
+                    {% if email.reviewed %}
+                        Yes
+                    {% else %}
+                        No
+                    {% endif %}
+                </p>
+
+                <p>
+                    <strong>Tags:</strong>
+                    {% if email.tags %}
+                        {{ email.tags | join(", ") }}
+                    {% else %}
+                        No tags
+                    {% endif %}
+                </p>
+            </section>
+
+            <section class="panel">
+                <h2>Actions</h2>
+
+                <form method="POST" action="/emails/{{ email.id }}/reviewed">
+                    <button type="submit">Mark as Reviewed</button>
+                </form>
+
+                <br>
+
+                <form method="POST" action="/emails/{{ email.id }}/tags">
+                    <input
+                        type="text"
+                        name="tag_name"
+                        placeholder="Add tag, example: Finance"
+                        required
+                    >
+
+                    <button type="submit">Add Tag</button>
+                </form>
+
+                <br>
+
+                <a href="/threads/{{ email.thread_id }}">View Thread</a>
+            </section>
+
+            <section class="panel">
+                <h2>Full Email Body</h2>
+                <p>{{ email.body }}</p>
+            </section>
+        </main>
+    </div>
+
+</body>
+</html>
