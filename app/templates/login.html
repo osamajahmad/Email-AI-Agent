@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSP Solutions | Email AI Agent Login</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body class="auth-page">
+
+    <main class="auth-shell">
+
+        <section class="auth-brand-panel">
+
+            <div class="auth-brand">
+                <div class="auth-logo">C</div>
+
+                <div>
+                    <h1>CSP Solutions</h1>
+                    <p>Email AI Agent</p>
+                </div>
+            </div>
+
+            <div class="auth-hero">
+                <span class="auth-security-pill">
+                    🛡 Demo Enterprise Access
+                </span>
+
+                <h2>Secure email intelligence workspace</h2>
+
+                <p>
+                    Review company emails, classify subscriptions and renewals,
+                    ask the AI Agent natural-language prompts, and keep important
+                    actions logged for audit.
+                </p>
+            </div>
+
+            <div class="auth-feature-grid">
+                <div class="auth-feature-card">
+                    <span>✦</span>
+                    <strong>AI Email Classification</strong>
+                    <p>
+                        Detect subscriptions, invoices, renewals, SaaS, cloud,
+                        domains, and software licenses.
+                    </p>
+                </div>
+
+                <div class="auth-feature-card">
+                    <span>▤</span>
+                    <strong>Audit-Ready Workflow</strong>
+                    <p>
+                        Prompts, reviewed emails, tags, and exports are tracked
+                        for enterprise review.
+                    </p>
+                </div>
+
+                <div class="auth-feature-card">
+                    <span>◇</span>
+                    <strong>Provider-Ready Design</strong>
+                    <p>
+                        Demo login now, Microsoft enterprise authentication and
+                        Graph API later.
+                    </p>
+                </div>
+            </div>
+
+        </section>
+
+        <section class="auth-card">
+
+            <div class="auth-card-header">
+                <span class="auth-card-icon">✉</span>
+
+                <div>
+                    <h2>Sign in</h2>
+                    <p>Access the CSP Email AI Agent workspace.</p>
+                </div>
+            </div>
+
+            {% if error %}
+                <div class="auth-error">
+                    {{ error }}
+                </div>
+            {% endif %}
+
+            <form method="POST" action="/login" class="auth-form">
+
+                <div class="auth-field">
+                    <label for="email">Email address</label>
+
+                    <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value="alex.morgan@cspsolutions.com"
+                        placeholder="alex.morgan@cspsolutions.com"
+                        required
+                    >
+                </div>
+
+                <div class="auth-field">
+                    <label for="password">Password</label>
+
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        value="demo123"
+                        placeholder="demo123"
+                        required
+                    >
+                </div>
+
+                <button type="submit" class="auth-submit-button">
+                    Sign in to Email AI Agent
+                </button>
+
+            </form>
+
+            <div class="auth-demo-box">
+                <strong>Demo credentials</strong>
+
+                <div>
+                    <span>Email</span>
+                    <p>alex.morgan@cspsolutions.com</p>
+                </div>
+
+                <div>
+                    <span>Password</span>
+                    <p>demo123</p>
+                </div>
+            </div>
+
+            <p class="auth-production-note">
+                This is demo authentication only. In production, this should be
+                replaced with Microsoft enterprise authentication.
+            </p>
+
+        </section>
+
+    </main>
+
+</body>
+</html>

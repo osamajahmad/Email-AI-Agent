@@ -6,7 +6,7 @@
 </head>
 <body>
 
-<div class="app-shell">
+<div class="app-shell no-email-selected">
 
     <!-- Top Bar -->
     <header class="topbar">
@@ -31,13 +31,15 @@
         </div>
 
         <div class="topbar-actions">
-            <span class="security-pill">Secure Workspace</span>
+            <button class="security-pill" type="button" onclick="showSecureWorkspaceStatus()">
+                Secure Workspace
+            </button>
 
-            <button class="topbar-icon-button" aria-label="Settings">
+            <button class="topbar-icon-button" type="button" onclick="showSettingsToast()" aria-label="Settings">
                 ⚙
             </button>
 
-            <button class="topbar-icon-button notification-button" aria-label="Notifications">
+            <button class="topbar-icon-button notification-button" type="button" onclick="showNotifications()" aria-label="Notifications">
                 🔔
                 <span>3</span>
             </button>
@@ -50,6 +52,8 @@
                     <span>IT Admin</span>
                 </div>
             </div>
+
+            <a href="/logout" class="logout-link">Logout</a>
         </div>
     </header>
 
@@ -59,45 +63,45 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <nav class="sidebar-nav">
-                <a class="active" href="/" aria-label="Inbox">
+                <button class="sidebar-link active" type="button" onclick="showInboxView(this)">
                     <span>✉</span>
                     <strong>Inbox</strong>
                     <em>342</em>
-                </a>
+                </button>
 
-                <a href="#" aria-label="Reviewed">
+                <button class="sidebar-link" type="button" onclick="showReviewedView(this)">
                     <span>✓</span>
                     <strong>Reviewed</strong>
                     <em>128</em>
-                </a>
+                </button>
 
-                <a href="#" aria-label="Tags">
+                <button class="sidebar-link" type="button" onclick="showTaggedView(this)">
                     <span>◇</span>
                     <strong>Tags</strong>
-                </a>
+                </button>
 
-                <a href="#" aria-label="Reports">
+                <button class="sidebar-link" type="button" onclick="showReportsView(this)">
                     <span>▥</span>
                     <strong>Reports</strong>
-                </a>
+                </button>
 
-                <a href="/audit-logs" aria-label="Audit Logs">
+                <a href="/audit-logs">
                     <span>▤</span>
                     <strong>Audit Logs</strong>
                 </a>
 
-                <a href="#" aria-label="Settings">
+                <button class="sidebar-link" type="button" onclick="showSettingsView(this)">
                     <span>⚙</span>
                     <strong>Settings</strong>
-                </a>
+                </button>
             </nav>
 
-            <div class="sidebar-status-card">
+            <button class="sidebar-status-card" type="button" onclick="showSecureWorkspaceStatus()">
                 <div class="status-icon">🛡</div>
                 <strong>Secure Workspace</strong>
                 <span>CSP Solutions</span>
                 <p>All systems operational</p>
-            </div>
+            </button>
         </aside>
 
         <!-- Email List Panel -->
@@ -108,29 +112,29 @@
                     <p>Recent company emails available for review.</p>
                 </div>
 
-                <button class="icon-button" onclick="resetInboxView()" aria-label="Refresh inbox">
+                <button class="icon-button" type="button" onclick="resetInboxView()" aria-label="Refresh inbox">
                     ↻
                 </button>
             </div>
 
             <div class="filter-chips" role="tablist" aria-label="Email filters">
-                <button class="filter-chip active" onclick="setFilter('All', this)">All <span>342</span></button>
-                <button class="filter-chip" onclick="setFilter('Subscription', this)">Subscriptions <span>86</span></button>
-                <button class="filter-chip" onclick="setFilter('Renewal', this)">Renewals <span>64</span></button>
-                <button class="filter-chip" onclick="setFilter('Invoice', this)">Invoices <span>71</span></button>
-                <button class="filter-chip" onclick="setFilter('SaaS', this)">SaaS <span>58</span></button>
-                <button class="filter-chip" onclick="setFilter('Domain', this)">Domains <span>23</span></button>
-                <button class="filter-chip" onclick="setFilter('Cloud', this)">Cloud <span>41</span></button>
-                <button class="filter-chip" onclick="setFilter('Software', this)">Software <span>37</span></button>
+                <button class="filter-chip active" type="button" onclick="setFilter('All', this)">All <span>342</span></button>
+                <button class="filter-chip" type="button" onclick="setFilter('Subscription', this)">Subscriptions <span>86</span></button>
+                <button class="filter-chip" type="button" onclick="setFilter('Renewal', this)">Renewals <span>64</span></button>
+                <button class="filter-chip" type="button" onclick="setFilter('Invoice', this)">Invoices <span>71</span></button>
+                <button class="filter-chip" type="button" onclick="setFilter('SaaS', this)">SaaS <span>58</span></button>
+                <button class="filter-chip" type="button" onclick="setFilter('Domain', this)">Domains <span>23</span></button>
+                <button class="filter-chip" type="button" onclick="setFilter('Cloud', this)">Cloud <span>41</span></button>
+                <button class="filter-chip" type="button" onclick="setFilter('Software', this)">Software <span>37</span></button>
             </div>
 
             <div class="list-toolbar">
                 <label class="toggle-label">
-                    <input id="unreadToggle" type="checkbox" onchange="renderEmailList()">
+                    <input id="unreadToggle" type="checkbox" onchange="handleFilterInputChange()">
                     <span>Unread only</span>
                 </label>
 
-                <select id="sortSelect" onchange="renderEmailList()" aria-label="Sort emails">
+                <select id="sortSelect" onchange="handleFilterInputChange()" aria-label="Sort emails">
                     <option value="newest">Sort: Newest</option>
                     <option value="confidence">Sort: Confidence</option>
                     <option value="sender">Sort: Sender</option>
@@ -140,22 +144,21 @@
             <div class="email-list" id="emailList"></div>
 
             <div class="list-footer">
-                <span id="emailCountLabel">1–25 of 342</span>
+                <span id="emailCountLabel">0 visible emails</span>
 
-                <div class="pagination">
-                    <button type="button">‹</button>
-                    <button type="button" class="active">1</button>
-                    <button type="button">2</button>
-                    <button type="button">3</button>
-                    <button type="button">…</button>
-                    <button type="button">14</button>
-                    <button type="button">›</button>
-                </div>
+                <div class="pagination" id="pagination"></div>
             </div>
         </section>
 
         <!-- Email Preview Panel -->
         <section class="email-preview-panel" id="emailPreview"></section>
+
+        <!-- AI Panel Resize Handle -->
+        <div
+            class="ai-resizer"
+            id="aiResizer"
+            title="Drag to resize AI panel"
+        ></div>
 
         <!-- AI Agent Panel -->
         <aside class="ai-panel">
@@ -165,7 +168,7 @@
                     <strong>Email AI Agent</strong>
                 </div>
 
-                <button class="icon-button ghost-icon" aria-label="AI panel options">
+                <button class="icon-button ghost-icon" type="button" onclick="showAIPanelOptions()" aria-label="AI panel options">
                     ⋯
                 </button>
             </div>
@@ -173,28 +176,30 @@
             <div class="ai-conversation" id="chatArea">
                 <div class="ai-empty-state" id="aiEmptyState">
                     <div class="ai-empty-icon">✦</div>
+
                     <h2>Ask the Email AI Agent</h2>
+
                     <p>
                         Search, classify, summarize, review, tag, and export company emails using natural language.
                     </p>
 
                     <div class="prompt-card-grid">
-                        <button type="button" onclick="fillPrompt('Find subscription emails from the last 30 days.')">
+                        <button type="button" onclick="runSuggestedPrompt('Find subscription emails from the last 30 days.')">
                             <span>✦</span>
                             <strong>Find subscription emails</strong>
                         </button>
 
-                        <button type="button" onclick="fillPrompt('Show invoices and renewal emails that may require payment.')">
+                        <button type="button" onclick="runSuggestedPrompt('Show invoices and renewal emails that may require payment.')">
                             <span>▣</span>
                             <strong>Show invoices and renewals</strong>
                         </button>
 
-                        <button type="button" onclick="fillPrompt('Find urgent emails that need action today.')">
+                        <button type="button" onclick="runSuggestedPrompt('Find urgent emails that need action today.')">
                             <span>🔔</span>
                             <strong>Find urgent emails</strong>
                         </button>
 
-                        <button type="button" onclick="fillPrompt('Export SaaS payment and subscription emails.')">
+                        <button type="button" onclick="runSuggestedPrompt('Export SaaS payment and subscription emails.')">
                             <span>⇩</span>
                             <strong>Export SaaS payments</strong>
                         </button>
@@ -214,8 +219,8 @@
 
                 <div class="composer-footer">
                     <div class="composer-tools">
-                        <button type="button" aria-label="Attach context">＋</button>
-                        <button type="button" aria-label="Voice input">🎙</button>
+                        <button type="button" onclick="attachContext()" aria-label="Attach context">＋</button>
+                        <button type="button" onclick="startVoiceDemo()" aria-label="Voice input">🎙</button>
                     </div>
 
                     <span>Enter to send</span>
@@ -244,7 +249,7 @@
                 <p>Apply an existing tag or create a new one.</p>
             </div>
 
-            <button class="icon-button" onclick="closeTagModal()" aria-label="Close tag modal">
+            <button class="icon-button" type="button" onclick="closeTagModal()" aria-label="Close tag modal">
                 ×
             </button>
         </div>
@@ -286,7 +291,7 @@
                 <p>Choose export format, scope, and included fields.</p>
             </div>
 
-            <button class="icon-button" onclick="closeExportModal()" aria-label="Close export modal">
+            <button class="icon-button" type="button" onclick="closeExportModal()" aria-label="Close export modal">
                 ×
             </button>
         </div>
@@ -330,31 +335,61 @@
     </div>
 </div>
 
+<!-- Compose Demo Modal -->
+<div class="modal-backdrop" id="composeModal" aria-hidden="true">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div>
+                <h2 id="composeTitle">Compose</h2>
+                <p>This is a demo compose action. Real sending would require Microsoft Graph permissions.</p>
+            </div>
+
+            <button class="icon-button" type="button" onclick="closeComposeModal()" aria-label="Close compose modal">
+                ×
+            </button>
+        </div>
+
+        <form id="composeForm">
+            <label for="composeTo">To</label>
+            <input
+                id="composeTo"
+                type="email"
+                value="finance@cspsolutions.com"
+                required
+            >
+
+            <br><br>
+
+            <label for="composeMessage">Message</label>
+            <textarea
+                id="composeMessage"
+                rows="7"
+                placeholder="Write your message..."
+                required
+            ></textarea>
+
+            <div class="modal-actions">
+                <button type="button" class="button ghost" onclick="closeComposeModal()">Cancel</button>
+                <button type="submit" class="button primary">Save Demo Draft</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
     const INITIAL_EMAILS = {{ emails | tojson }};
 
     let emails = [...INITIAL_EMAILS];
-    let selectedEmailId = getDefaultSelectedEmailId();
+    let selectedEmailId = null;
     let currentFilter = "All";
     let latestPrompt = "";
     let latestAgentResults = [];
     let tagTargetEmailId = null;
+    let currentPage = 1;
 
-    function getDefaultSelectedEmailId() {
-        const notion = INITIAL_EMAILS.find(email => email.sender === "Notion");
-
-        if (notion) {
-            return notion.id;
-        }
-
-        if (INITIAL_EMAILS.length > 0) {
-            return INITIAL_EMAILS[0].id;
-        }
-
-        return null;
-    }
+    const pageSize = 5;
 
     function escapeHtml(value) {
         return String(value ?? "")
@@ -372,13 +407,29 @@
     function getCategoryClass(category) {
         return String(category || "other")
             .toLowerCase()
+            .replaceAll("/", "-")
             .replaceAll(" ", "-");
+    }
+
+    function updateWorkspaceMode() {
+        const appShell = document.querySelector(".app-shell");
+
+        if (!appShell) {
+            return;
+        }
+
+        if (selectedEmailId) {
+            appShell.classList.remove("no-email-selected");
+        } else {
+            appShell.classList.add("no-email-selected");
+        }
     }
 
     function getFilteredEmails() {
         let filtered = [...emails];
 
         const searchValue = document.getElementById("globalSearchInput").value.trim().toLowerCase();
+        const unreadOnly = document.getElementById("unreadToggle").checked;
 
         if (currentFilter !== "All") {
             filtered = filtered.filter(email => {
@@ -394,19 +445,30 @@
             });
         }
 
+        if (unreadOnly) {
+            filtered = filtered.filter(email => !email.reviewed);
+        }
+
         if (searchValue) {
             filtered = filtered.filter(email => {
                 return (
                     String(email.sender || "").toLowerCase().includes(searchValue) ||
                     String(email.sender_email || "").toLowerCase().includes(searchValue) ||
+                    String(email.recipient_email || "").toLowerCase().includes(searchValue) ||
                     String(email.subject || "").toLowerCase().includes(searchValue) ||
                     String(email.category || "").toLowerCase().includes(searchValue) ||
-                    String(email.preview || "").toLowerCase().includes(searchValue)
+                    String(email.preview || "").toLowerCase().includes(searchValue) ||
+                    String(email.body || "").toLowerCase().includes(searchValue) ||
+                    String((email.tags || []).join(" ")).toLowerCase().includes(searchValue)
                 );
             });
         }
 
         const sortValue = document.getElementById("sortSelect").value;
+
+        if (sortValue === "newest") {
+            filtered.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+        }
 
         if (sortValue === "confidence") {
             filtered.sort((a, b) => Number(b.confidence_score || 0) - Number(a.confidence_score || 0));
@@ -419,8 +481,14 @@
         return filtered;
     }
 
+    function handleFilterInputChange() {
+        currentPage = 1;
+        renderEmailList();
+    }
+
     function setFilter(filterName, button) {
         currentFilter = filterName;
+        currentPage = 1;
 
         document.querySelectorAll(".filter-chip").forEach(chip => {
             chip.classList.remove("active");
@@ -431,8 +499,13 @@
     }
 
     function resetInboxView() {
+        selectedEmailId = null;
         currentFilter = "All";
+        currentPage = 1;
+
         document.getElementById("globalSearchInput").value = "";
+        document.getElementById("unreadToggle").checked = false;
+        document.getElementById("sortSelect").value = "newest";
 
         document.querySelectorAll(".filter-chip").forEach(chip => {
             chip.classList.remove("active");
@@ -446,10 +519,22 @@
 
     function renderEmailList() {
         const emailList = document.getElementById("emailList");
-        const filteredEmails = getFilteredEmails();
+        const allFilteredEmails = getFilteredEmails();
         const countLabel = document.getElementById("emailCountLabel");
 
-        countLabel.textContent = `${filteredEmails.length} visible emails`;
+        const totalPages = Math.max(1, Math.ceil(allFilteredEmails.length / pageSize));
+
+        if (currentPage > totalPages) {
+            currentPage = totalPages;
+        }
+
+        const startIndex = (currentPage - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const filteredEmails = allFilteredEmails.slice(startIndex, endIndex);
+
+        countLabel.textContent = `${allFilteredEmails.length} visible emails`;
+
+        renderPagination(totalPages);
 
         if (!filteredEmails.length) {
             emailList.innerHTML = `
@@ -464,6 +549,7 @@
         emailList.innerHTML = filteredEmails.map((email, index) => {
             const isSelected = email.id === selectedEmailId;
             const isReviewed = Boolean(email.reviewed);
+            const logoIndex = ((startIndex + index) % 8) + 1;
 
             return `
                 <button
@@ -472,7 +558,7 @@
                     onclick="selectEmail('${email.id}', true)"
                     aria-label="Open email ${escapeHtml(email.subject)}"
                 >
-                    <div class="sender-logo logo-${(index % 8) + 1}">
+                    <div class="sender-logo logo-${logoIndex}">
                         ${escapeHtml(String(email.sender || "?")[0])}
                     </div>
 
@@ -498,11 +584,44 @@
                             </span>
 
                             ${isReviewed ? `<span class="reviewed-pill">Reviewed</span>` : ""}
+                            ${email.starred ? `<span class="reviewed-pill">Starred</span>` : ""}
+                            ${email.tags && email.tags.length ? `<span class="reviewed-pill">Tagged</span>` : ""}
                         </div>
                     </div>
                 </button>
             `;
         }).join("");
+    }
+
+    function renderPagination(totalPages) {
+        const pagination = document.getElementById("pagination");
+
+        let buttons = `
+            <button type="button" onclick="goToPage(currentPage - 1)">‹</button>
+        `;
+
+        for (let page = 1; page <= totalPages; page++) {
+            buttons += `
+                <button type="button" class="${page === currentPage ? "active" : ""}" onclick="goToPage(${page})">
+                    ${page}
+                </button>
+            `;
+        }
+
+        buttons += `
+            <button type="button" onclick="goToPage(currentPage + 1)">›</button>
+        `;
+
+        pagination.innerHTML = buttons;
+    }
+
+    function goToPage(pageNumber) {
+        const allFilteredEmails = getFilteredEmails();
+        const totalPages = Math.max(1, Math.ceil(allFilteredEmails.length / pageSize));
+
+        currentPage = Math.min(Math.max(pageNumber, 1), totalPages);
+
+        renderEmailList();
     }
 
     function renderPreview() {
@@ -511,9 +630,10 @@
 
         if (!email) {
             preview.innerHTML = `
-                <div class="empty-preview">
-                    <strong>Select an email</strong>
-                    <p>The full email preview will appear here.</p>
+                <div class="empty-preview empty-preview-centered">
+                    <div class="empty-preview-icon">✉</div>
+                    <strong>No email selected</strong>
+                    <p>Select an email from the inbox or click Open from an AI result to preview it here.</p>
                 </div>
             `;
             return;
@@ -523,6 +643,7 @@
             <div class="preview-top">
                 <div>
                     <h2>${escapeHtml(email.subject)}</h2>
+
                     <div class="preview-badge-row">
                         <span class="badge badge-${getCategoryClass(email.category)}">
                             ${escapeHtml(email.category || "Other")}
@@ -533,13 +654,22 @@
                         </span>
 
                         ${email.reviewed ? `<span class="reviewed-pill">Reviewed</span>` : ""}
+                        ${email.starred ? `<span class="reviewed-pill">Starred</span>` : ""}
                     </div>
                 </div>
 
                 <div class="preview-icon-actions">
-                    <button aria-label="Star email">☆</button>
-                    <button onclick="openTagModal('${email.id}')" aria-label="Tag email">🏷</button>
-                    <button aria-label="More options">⋯</button>
+                    <button type="button" onclick="toggleStarred('${email.id}')" aria-label="Star email">
+                        ${email.starred ? "★" : "☆"}
+                    </button>
+
+                    <button type="button" onclick="openTagModal('${email.id}')" aria-label="Tag email">
+                        🏷
+                    </button>
+
+                    <button type="button" onclick="openExportModal('selected')" aria-label="More options">
+                        ⋯
+                    </button>
                 </div>
             </div>
 
@@ -569,27 +699,27 @@
             </article>
 
             <div class="preview-actions">
-                <button class="button primary" onclick="markReviewed('${email.id}', 'preview')">
+                <button class="button primary" type="button" onclick="markReviewed('${email.id}', 'preview')">
                     ✓ Mark as Reviewed
                 </button>
 
-                <button class="button secondary" onclick="openTagModal('${email.id}')">
+                <button class="button secondary" type="button" onclick="openTagModal('${email.id}')">
                     🏷 Tag
                 </button>
 
-                <button class="button secondary" onclick="openExportModal('selected')">
+                <button class="button secondary" type="button" onclick="openExportModal('selected')">
                     ⇩ Export
                 </button>
 
-                <button class="button secondary" onclick="window.location.href='/threads/${email.thread_id}'">
+                <button class="button secondary" type="button" onclick="window.location.href='/threads/${email.thread_id}'">
                     ▣ View Thread
                 </button>
             </div>
 
             <div class="reply-actions">
-                <button class="button ghost">↩ Reply</button>
-                <button class="button ghost">↞ Reply all</button>
-                <button class="button ghost">↗ Forward</button>
+                <button class="button ghost" type="button" onclick="openComposeModal('Reply', '${email.id}')">↩ Reply</button>
+                <button class="button ghost" type="button" onclick="openComposeModal('Reply all', '${email.id}')">↞ Reply all</button>
+                <button class="button ghost" type="button" onclick="openComposeModal('Forward', '${email.id}')">↗ Forward</button>
             </div>
         `;
     }
@@ -597,19 +727,18 @@
     function selectEmail(emailId, showFeedback = false) {
         selectedEmailId = emailId;
 
-        renderEmailList();
-        renderPreview();
-
-        if (showFeedback) {
-            const email = getEmailById(emailId);
-            showToast(`Opened: ${email.subject}`);
-        }
+        renderAll();
     }
 
     function fillPrompt(text) {
         const input = document.getElementById("promptInput");
         input.value = text;
         input.focus();
+    }
+
+    function runSuggestedPrompt(prompt) {
+        fillPrompt(prompt);
+        askAgent(prompt);
     }
 
     async function askAgent(prompt) {
@@ -646,8 +775,7 @@
                 addAgentAnswer(data.agent_result, latestAgentResults);
 
                 if (latestAgentResults.length > 0) {
-                    selectEmail(latestAgentResults[0].id, false);
-                    showToast("AI results generated. Prompt logged for audit.");
+                    showToast("AI results generated. Click Open to preview an email.");
                 } else {
                     showToast("No matching emails found.", "error");
                 }
@@ -789,11 +917,11 @@
                     </div>
 
                     <div class="ai-result-actions">
-                        <button onclick="selectEmail('${email.id}', true)">Open</button>
-                        <button onclick="window.location.href='/threads/${email.thread_id}'">Thread</button>
-                        <button onclick="markReviewed('${email.id}', 'ai_panel')">Review</button>
-                        <button onclick="openTagModal('${email.id}')">Tag</button>
-                        <button onclick="exportSingle('${email.id}')">Export</button>
+                        <button type="button" onclick="selectEmail('${email.id}', true)">Open</button>
+                        <button type="button" onclick="window.location.href='/threads/${email.thread_id}'">Thread</button>
+                        <button type="button" onclick="markReviewed('${email.id}', 'ai_panel')">Review</button>
+                        <button type="button" onclick="openTagModal('${email.id}')">Tag</button>
+                        <button type="button" onclick="exportSingle('${email.id}')">Export</button>
                     </div>
                 </div>
             `;
@@ -813,9 +941,9 @@
                     results.length
                     ? `<div class="ai-result-list">${resultCards}</div>
                        <div class="try-next-row">
-                           <button onclick="fillPrompt('Only show high confidence matches above 90%.')">High confidence only</button>
-                           <button onclick="fillPrompt('Show only invoices from these results.')">Only invoices</button>
-                           <button onclick="openExportModal('agent')">Export results</button>
+                           <button type="button" onclick="runSuggestedPrompt('Only show high confidence matches above 90%.')">High confidence only</button>
+                           <button type="button" onclick="runSuggestedPrompt('Show only invoices from these results.')">Only invoices</button>
+                           <button type="button" onclick="openExportModal('agent')">Export results</button>
                        </div>`
                     : `<div class="no-results-card">
                            <strong>No matching emails found.</strong>
@@ -840,7 +968,7 @@
             <div class="assistant-message error-message">
                 <strong>I couldn’t complete the analysis.</strong>
                 <p>${escapeHtml(message)}</p>
-                <button class="button secondary" onclick="askAgent(latestPrompt)">Retry</button>
+                <button class="button secondary" type="button" onclick="askAgent(latestPrompt)">Retry</button>
             </div>
         `;
 
@@ -974,6 +1102,11 @@
 
     function runExportFromModal() {
         const scope = document.getElementById("exportScope").value;
+        const exportType = document.getElementById("exportType").value;
+
+        if (exportType !== "csv") {
+            showToast("Demo currently exports CSV. Excel/PDF can be connected later.");
+        }
 
         showToast("Preparing export…");
 
@@ -1001,7 +1134,6 @@
             }
 
             closeExportModal();
-            showToast("Export created successfully. Audit entry created.");
         }, 450);
     }
 
@@ -1011,6 +1143,256 @@
         setTimeout(() => {
             window.location.href = `/emails/${emailId}/export`;
         }, 350);
+    }
+
+    function setActiveSidebarButton(activeButton) {
+        document.querySelectorAll(".sidebar-nav a, .sidebar-nav button").forEach(item => {
+            item.classList.remove("active");
+        });
+
+        if (activeButton) {
+            activeButton.classList.add("active");
+        }
+    }
+
+    function showInboxView(button) {
+        setActiveSidebarButton(button);
+        resetInboxView();
+    }
+
+    function showReviewedView(button) {
+        setActiveSidebarButton(button);
+
+        selectedEmailId = null;
+        updateWorkspaceMode();
+
+        const reviewedEmails = emails.filter(email => email.reviewed);
+
+        renderCustomEmailList(
+            reviewedEmails,
+            "reviewed emails",
+            "No reviewed emails yet.",
+            "Mark emails as reviewed and they will appear here."
+        );
+
+        showToast("Reviewed view loaded.");
+    }
+
+    function showTaggedView(button) {
+        setActiveSidebarButton(button);
+
+        selectedEmailId = null;
+        updateWorkspaceMode();
+
+        const taggedEmails = emails.filter(email => {
+            return Array.isArray(email.tags) && email.tags.length > 0;
+        });
+
+        renderCustomEmailList(
+            taggedEmails,
+            "tagged emails",
+            "No tagged emails yet.",
+            "Add tags to emails and they will appear here."
+        );
+
+        showToast("Tagged view loaded.");
+    }
+
+    function showReportsView(button) {
+        setActiveSidebarButton(button);
+
+        selectedEmailId = null;
+        updateWorkspaceMode();
+
+        const totalEmails = emails.length;
+        const reviewedCount = emails.filter(email => email.reviewed).length;
+        const taggedCount = emails.filter(email => email.tags && email.tags.length > 0).length;
+
+        const averageConfidence = Math.round(
+            emails.reduce((sum, email) => sum + Number(email.confidence_score || 0), 0) / Math.max(totalEmails, 1)
+        );
+
+        document.getElementById("emailCountLabel").textContent = "Reports summary";
+
+        document.getElementById("emailList").innerHTML = `
+            <div class="empty-list report-summary-card">
+                <strong>Mailbox Report</strong>
+                <p>Total emails: ${totalEmails}</p>
+                <p>Reviewed emails: ${reviewedCount}</p>
+                <p>Tagged emails: ${taggedCount}</p>
+                <p>Average confidence score: ${averageConfidence}%</p>
+                <p>Most common categories: Subscription, Invoice, Domain, Cloud</p>
+
+                <button class="button primary" type="button" onclick="openExportModal('all')">
+                    Export Report
+                </button>
+            </div>
+        `;
+
+        document.getElementById("pagination").innerHTML = "";
+
+        showToast("Reports summary generated.");
+    }
+
+    function showSettingsView(button) {
+        setActiveSidebarButton(button);
+
+        selectedEmailId = null;
+        updateWorkspaceMode();
+
+        document.getElementById("emailCountLabel").textContent = "Settings";
+
+        document.getElementById("emailList").innerHTML = `
+            <div class="empty-list report-summary-card">
+                <strong>Demo Settings</strong>
+                <p>Email provider: Mock Provider API</p>
+                <p>AI model: Gemini</p>
+                <p>Authentication: Demo cookie login</p>
+                <p>Audit logging: Enabled in memory</p>
+
+                <button class="button primary" type="button" onclick="showToast('Settings saved in demo mode.')">
+                    Save Demo Settings
+                </button>
+            </div>
+        `;
+
+        document.getElementById("pagination").innerHTML = "";
+
+        showToast("Settings opened.");
+    }
+
+    function renderCustomEmailList(customEmails, label, emptyTitle, emptyMessage) {
+        const emailList = document.getElementById("emailList");
+        const countLabel = document.getElementById("emailCountLabel");
+
+        countLabel.textContent = `${customEmails.length} ${label}`;
+
+        document.getElementById("pagination").innerHTML = "";
+
+        if (!customEmails.length) {
+            emailList.innerHTML = `
+                <div class="empty-list">
+                    <strong>${emptyTitle}</strong>
+                    <p>${emptyMessage}</p>
+                </div>
+            `;
+            return;
+        }
+
+        emailList.innerHTML = customEmails.map((email, index) => {
+            const isSelected = email.id === selectedEmailId;
+
+            return `
+                <button
+                    type="button"
+                    class="email-card ${isSelected ? "selected" : ""} ${email.reviewed ? "reviewed-email" : ""}"
+                    onclick="selectEmail('${email.id}', true)"
+                >
+                    <div class="sender-logo logo-${(index % 8) + 1}">
+                        ${escapeHtml(String(email.sender || "?")[0])}
+                    </div>
+
+                    <div class="email-card-content">
+                        <div class="email-card-top">
+                            <strong>${escapeHtml(email.sender)}</strong>
+                            <span>${escapeHtml(email.date)}</span>
+                        </div>
+
+                        <div class="email-card-subject">
+                            ${escapeHtml(email.subject)}
+                        </div>
+
+                        <p>${escapeHtml(email.preview || String(email.body || "").slice(0, 90))}</p>
+
+                        <div class="email-card-meta">
+                            <span class="badge badge-${getCategoryClass(email.category)}">
+                                ${escapeHtml(email.category || "Other")}
+                            </span>
+
+                            <span class="confidence-pill">
+                                ${escapeHtml(email.confidence_score || 0)}%
+                            </span>
+
+                            ${email.reviewed ? `<span class="reviewed-pill">Reviewed</span>` : ""}
+                            ${email.tags && email.tags.length ? `<span class="reviewed-pill">Tagged</span>` : ""}
+                        </div>
+                    </div>
+                </button>
+            `;
+        }).join("");
+    }
+
+    function showSettingsToast() {
+        showToast("Settings opened. Use the sidebar Settings item for demo settings.");
+    }
+
+    function showNotifications() {
+        showToast("3 demo notifications: AI results ready, export completed, audit log updated.");
+    }
+
+    function showSecureWorkspaceStatus() {
+        showToast("Secure workspace active. All systems operational.");
+    }
+
+    function showAIPanelOptions() {
+        showToast("AI panel options opened. More assistant settings can be added later.");
+    }
+
+    function attachContext() {
+        showToast("Demo context attachment selected. Real upload can be added later.");
+    }
+
+    function startVoiceDemo() {
+        showToast("Voice input is not enabled in demo mode.");
+    }
+
+    function toggleStarred(emailId) {
+        emails = emails.map(email => {
+            if (email.id === emailId) {
+                return {
+                    ...email,
+                    starred: !email.starred,
+                };
+            }
+
+            return email;
+        });
+
+        const email = getEmailById(emailId);
+
+        renderAll();
+
+        if (email.starred) {
+            showToast("Email starred.");
+        } else {
+            showToast("Email unstarred.");
+        }
+    }
+
+    function openComposeModal(actionType, emailId) {
+        const email = getEmailById(emailId);
+
+        document.getElementById("composeTitle").textContent = actionType;
+
+        const composeTo = document.getElementById("composeTo");
+        const messageBox = document.getElementById("composeMessage");
+
+        if (actionType === "Forward") {
+            composeTo.value = "finance@cspsolutions.com";
+            messageBox.value = `Forwarding email: ${email.subject}\n\n${email.body}`;
+        } else {
+            composeTo.value = email.sender_email || "finance@cspsolutions.com";
+            messageBox.value = `Regarding: ${email.subject}\n\n`;
+        }
+
+        document.getElementById("composeModal").classList.add("visible");
+        document.getElementById("composeModal").setAttribute("aria-hidden", "false");
+        messageBox.focus();
+    }
+
+    function closeComposeModal() {
+        document.getElementById("composeModal").classList.remove("visible");
+        document.getElementById("composeModal").setAttribute("aria-hidden", "true");
     }
 
     function showToast(message, type = "success") {
@@ -1028,11 +1410,67 @@
     }
 
     function renderAll() {
+        updateWorkspaceMode();
         renderEmailList();
         renderPreview();
     }
 
-    document.getElementById("globalSearchInput").addEventListener("input", renderEmailList);
+    function initAIPanelResize() {
+        const resizer = document.getElementById("aiResizer");
+        const appShell = document.querySelector(".app-shell");
+
+        if (!resizer || !appShell) {
+            return;
+        }
+
+        let isResizing = false;
+
+        resizer.addEventListener("mousedown", function () {
+            isResizing = true;
+            document.body.classList.add("is-resizing-ai-panel");
+        });
+
+        document.addEventListener("mousemove", function (event) {
+            if (!isResizing) {
+                return;
+            }
+
+            const windowWidth = window.innerWidth;
+            const newPanelWidth = windowWidth - event.clientX;
+
+            const minWidth = 380;
+            const maxWidth = Math.min(760, windowWidth * 0.55);
+
+            const safeWidth = Math.min(
+                Math.max(newPanelWidth, minWidth),
+                maxWidth
+            );
+
+            appShell.style.setProperty(
+                "--ai-panel-width",
+                `${safeWidth}px`
+            );
+        });
+
+        document.addEventListener("mouseup", function () {
+            if (!isResizing) {
+                return;
+            }
+
+            isResizing = false;
+            document.body.classList.remove("is-resizing-ai-panel");
+        });
+
+        resizer.addEventListener("dblclick", function () {
+            appShell.style.setProperty("--ai-panel-width", "430px");
+            showToast("AI Agent panel width reset.");
+        });
+    }
+
+    document.getElementById("globalSearchInput").addEventListener("input", function () {
+        currentPage = 1;
+        renderEmailList();
+    });
 
     document.getElementById("agentForm").addEventListener("submit", function (event) {
         event.preventDefault();
@@ -1057,6 +1495,27 @@
 
     document.getElementById("tagForm").addEventListener("submit", submitTag);
 
+    document.getElementById("composeForm").addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        closeComposeModal();
+        showToast("Demo draft saved. Real sending requires Microsoft Graph permissions.");
+    });
+
+    document.addEventListener("keydown", function (event) {
+        if (event.ctrlKey && event.key.toLowerCase() === "k") {
+            event.preventDefault();
+            document.getElementById("globalSearchInput").focus();
+        }
+
+        if (event.key === "Escape") {
+            closeTagModal();
+            closeExportModal();
+            closeComposeModal();
+        }
+    });
+
+    initAIPanelResize();
     renderAll();
 </script>
 

@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.agent_routes import router as agent_router
 from app.api.audit_routes import router as audit_router
+from app.api.auth_routes import router as auth_router
 from app.api.email_routes import router as email_router
 from app.api.mock_provider_routes import router as mock_provider_router
 from app.api.page_routes import router as page_router
@@ -20,6 +21,7 @@ app.mount(
     name="static",
 )
 
+app.include_router(auth_router)
 app.include_router(page_router)
 app.include_router(agent_router)
 app.include_router(email_router)
