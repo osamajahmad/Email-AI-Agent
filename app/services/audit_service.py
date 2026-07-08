@@ -4,7 +4,7 @@ from datetime import datetime
 AUDIT_LOGS = []
 
 
-def create_audit_log(event_type, details):
+def create_audit_log(event_type, details, user="unknown"):
     """
     Create one audit log entry.
 
@@ -14,6 +14,7 @@ def create_audit_log(event_type, details):
 
     entry = {
         "timestamp": datetime.now().isoformat(timespec="seconds"),
+        "user": user,
         "event_type": event_type,
         "details": details,
     }
@@ -23,9 +24,9 @@ def create_audit_log(event_type, details):
     return entry
 
 
-def log_prompt(prompt, agent_result):
+def log_prompt(prompt, agent_result, user="unknown"):
     """
-    Log the user prompt and matched emails.
+    Log the user prompt, matched emails, and AI result details.
     """
 
     matched_emails = agent_result.get("emails", [])
@@ -35,20 +36,33 @@ def log_prompt(prompt, agent_result):
         for email in matched_emails
     ]
 
+    matched_email_subjects = [
+        email.get("subject")
+        for email in matched_emails
+    ]
+
+    matched_email_senders = [
+        email.get("sender")
+        for email in matched_emails
+    ]
+
     return create_audit_log(
         event_type="agent_prompt",
+        user=user,
         details={
             "prompt": prompt,
             "agent_status": agent_result.get("status"),
             "interpreted_intent": agent_result.get("interpreted_intent"),
             "matched_count": len(matched_emails),
             "matched_email_ids": matched_email_ids,
+            "matched_email_subjects": matched_email_subjects,
+            "matched_email_senders": matched_email_senders,
             "tools_used": agent_result.get("tools_used", []),
         },
     )
 
 
-def log_action(action, email_id=None, extra_details=None):
+def log_action(action, email_id=None, extra_details=None, user="unknown"):
     """
     Log a user action.
     """
@@ -63,6 +77,7 @@ def log_action(action, email_id=None, extra_details=None):
 
     return create_audit_log(
         event_type="user_action",
+        user=user,
         details=details,
     )
 

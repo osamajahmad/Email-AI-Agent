@@ -19,8 +19,7 @@ def login_page(request: Request):
     """
     Display demo login page.
 
-    This is not production authentication.
-    Later, this should be replaced with Microsoft enterprise login.
+    This route must stay public.
     """
 
     demo_user = request.cookies.get("demo_user")
@@ -49,7 +48,7 @@ def login(
     """
     Demo login route.
 
-    Accepts only CSP Solutions emails and a demo password.
+    Accepts only CSP Solutions emails and the demo password.
     """
 
     cleaned_email = email.strip().lower()

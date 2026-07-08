@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from app.services.audit_service import log_action
+from app.services.auth_service import require_demo_user
 from app.services.email_agent import run_email_agent
 from app.services.email_provider import (
     add_email_tag,
@@ -21,13 +22,44 @@ router = APIRouter(
 templates = Jinja2Templates(directory="app/templates")
 
 
+def build_email_audit_details(email, extra_details=None):
+    """
+    Build readable audit details for email-related actions.
+    """
+
+    details = {}
+
+    if email:
+        details.update(
+            {
+                "email_id": email.get("id"),
+                "thread_id": email.get("thread_id"),
+                "sender": email.get("sender"),
+                "sender_email": email.get("sender_email"),
+                "recipient_email": email.get("recipient_email"),
+                "subject": email.get("subject"),
+                "category": email.get("category"),
+                "confidence_score": email.get("confidence_score"),
+            }
+        )
+
+    if extra_details:
+        details.update(extra_details)
+
+    return details
+
+
 @router.get("/emails/{email_id}")
 def email_detail(
     request: Request,
     email_id: str,
+    demo_user: str = Depends(require_demo_user),
 ):
     """
     Display one full email.
+
+    Opening an email is logged for auditing, but the frontend should not show
+    a success toast because this is normal navigation.
     """
 
     email = get_email_by_id(email_id)
@@ -41,6 +73,8 @@ def email_detail(
     log_action(
         action="open_email",
         email_id=email_id,
+        user=demo_user,
+        extra_details=build_email_audit_details(email),
     )
 
     return templates.TemplateResponse(
@@ -48,6 +82,7 @@ def email_detail(
         name="email_detail.html",
         context={
             "email": email,
+            "current_user": demo_user,
         },
     )
 
@@ -56,6 +91,7 @@ def email_detail(
 def thread_detail(
     request: Request,
     thread_id: str,
+    demo_user: str = Depends(require_demo_user),
 ):
     """
     Display all emails in one thread.
@@ -71,9 +107,18 @@ def thread_detail(
 
     log_action(
         action="view_thread",
+        user=demo_user,
         extra_details={
             "thread_id": thread_id,
             "emails_count": len(emails),
+            "email_ids": [
+                email.get("id")
+                for email in emails
+            ],
+            "email_subjects": [
+                email.get("subject")
+                for email in emails
+            ],
         },
     )
 
@@ -83,14 +128,18 @@ def thread_detail(
         context={
             "thread_id": thread_id,
             "emails": emails,
+            "current_user": demo_user,
         },
     )
 
 
 @router.post("/emails/{email_id}/reviewed")
-def review_email(email_id: str):
+def review_email(
+    email_id: str,
+    demo_user: str = Depends(require_demo_user),
+):
     """
-    Mark email as reviewed.
+    Mark email as reviewed using the normal form route.
     """
 
     email = mark_email_as_reviewed(email_id)
@@ -104,6 +153,13 @@ def review_email(email_id: str):
     log_action(
         action="mark_as_reviewed",
         email_id=email_id,
+        user=demo_user,
+        extra_details=build_email_audit_details(
+            email,
+            {
+                "source": "email_detail_page",
+            },
+        ),
     )
 
     return RedirectResponse(
@@ -116,14 +172,23 @@ def review_email(email_id: str):
 def tag_email(
     email_id: str,
     tag_name: str = Form(...),
+    demo_user: str = Depends(require_demo_user),
 ):
     """
-    Add tag to email.
+    Add a tag to an email using the normal form route.
     """
+
+    cleaned_tag_name = tag_name.strip()
+
+    if not cleaned_tag_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Tag name is required.",
+        )
 
     email = add_email_tag(
         email_id=email_id,
-        tag_name=tag_name,
+        tag_name=cleaned_tag_name,
     )
 
     if not email:
@@ -135,9 +200,14 @@ def tag_email(
     log_action(
         action="add_tag",
         email_id=email_id,
-        extra_details={
-            "tag_name": tag_name,
-        },
+        user=demo_user,
+        extra_details=build_email_audit_details(
+            email,
+            {
+                "tag_name": cleaned_tag_name,
+                "source": "email_detail_page",
+            },
+        ),
     )
 
     return RedirectResponse(
@@ -147,19 +217,27 @@ def tag_email(
 
 
 @router.get("/export")
-def export_emails(prompt: str = ""):
+def export_emails(
+    prompt: str = "",
+    demo_user: str = Depends(require_demo_user),
+):
     """
-    Export all emails or agent results as CSV.
+    Export all emails or AI Agent matched results as CSV.
 
-    If prompt is provided, the Email AI Agent runs again and exports the matched results.
-    If no prompt is provided, all provider emails are exported.
+    If prompt is provided:
+    - The Email AI Agent runs again.
+    - Only matched results are exported.
+
+    If no prompt is provided:
+    - All provider emails are exported.
     """
 
     emails = get_emails()
+    cleaned_prompt = prompt.strip()
 
-    if prompt:
+    if cleaned_prompt:
         agent_result = run_email_agent(
-            user_prompt=prompt,
+            user_prompt=cleaned_prompt,
             emails=emails,
         )
 
@@ -168,9 +246,22 @@ def export_emails(prompt: str = ""):
 
         log_action(
             action="export_agent_results",
+            user=demo_user,
             extra_details={
-                "prompt": prompt,
+                "prompt": cleaned_prompt,
                 "emails_count": len(export_data),
+                "matched_email_ids": [
+                    email.get("id")
+                    for email in export_data
+                ],
+                "matched_email_subjects": [
+                    email.get("subject")
+                    for email in export_data
+                ],
+                "matched_email_senders": [
+                    email.get("sender")
+                    for email in export_data
+                ],
             },
         )
 
@@ -180,8 +271,13 @@ def export_emails(prompt: str = ""):
 
         log_action(
             action="export_all_emails",
+            user=demo_user,
             extra_details={
                 "emails_count": len(export_data),
+                "email_ids": [
+                    email.get("id")
+                    for email in export_data
+                ],
             },
         )
 
@@ -197,7 +293,10 @@ def export_emails(prompt: str = ""):
 
 
 @router.get("/emails/{email_id}/export")
-def export_single_email(email_id: str):
+def export_single_email(
+    email_id: str,
+    demo_user: str = Depends(require_demo_user),
+):
     """
     Export one email as CSV.
     """
@@ -213,6 +312,8 @@ def export_single_email(email_id: str):
     log_action(
         action="export_single_email",
         email_id=email_id,
+        user=demo_user,
+        extra_details=build_email_audit_details(email),
     )
 
     csv_text = build_emails_csv([email])
@@ -225,10 +326,16 @@ def export_single_email(email_id: str):
         },
     )
 
+
 @router.post("/api/emails/{email_id}/reviewed")
-def review_email_api(email_id: str):
+def review_email_api(
+    email_id: str,
+    demo_user: str = Depends(require_demo_user),
+):
     """
     Interactive API endpoint for marking an email as reviewed.
+
+    Used by the dashboard without refreshing the page.
     """
 
     email = mark_email_as_reviewed(email_id)
@@ -242,9 +349,13 @@ def review_email_api(email_id: str):
     log_action(
         action="mark_as_reviewed",
         email_id=email_id,
-        extra_details={
-            "source": "interactive_dashboard",
-        },
+        user=demo_user,
+        extra_details=build_email_audit_details(
+            email,
+            {
+                "source": "interactive_dashboard",
+            },
+        ),
     )
 
     return {
@@ -258,14 +369,25 @@ def review_email_api(email_id: str):
 def tag_email_api(
     email_id: str,
     tag_name: str = Form(...),
+    demo_user: str = Depends(require_demo_user),
 ):
     """
     Interactive API endpoint for adding a tag.
+
+    Used by the dashboard without refreshing the page.
     """
+
+    cleaned_tag_name = tag_name.strip()
+
+    if not cleaned_tag_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Tag name is required.",
+        )
 
     email = add_email_tag(
         email_id=email_id,
-        tag_name=tag_name,
+        tag_name=cleaned_tag_name,
     )
 
     if not email:
@@ -277,10 +399,14 @@ def tag_email_api(
     log_action(
         action="add_tag",
         email_id=email_id,
-        extra_details={
-            "tag_name": tag_name,
-            "source": "interactive_dashboard",
-        },
+        user=demo_user,
+        extra_details=build_email_audit_details(
+            email,
+            {
+                "tag_name": cleaned_tag_name,
+                "source": "interactive_dashboard",
+            },
+        ),
     )
 
     return {
