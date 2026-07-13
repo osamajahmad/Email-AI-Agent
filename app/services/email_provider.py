@@ -3,9 +3,7 @@ import os
 import httpx
 from dotenv import load_dotenv
 
-from app.services.microsoft_graph_provider import get_graph_emails
-
-
+# This allows the app to read EMAIL_PROVIDER and MOCK_PROVIDER_BASE_URL
 load_dotenv()
 
 
@@ -35,6 +33,7 @@ def get_mock_provider_emails():
 
     base_url = get_mock_provider_base_url()
 
+    # Even though the mock provider is inside the FastAPI app, it acts like it comes from a provider, so it proves that its not a frontend hardcode
     response = httpx.get(
         f"{base_url}/mock-provider/emails",
         timeout=10,

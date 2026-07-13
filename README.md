@@ -18,8 +18,6 @@ The Email AI Agent analyzes available emails, detects subscription/renewal/invoi
 
 This project is built as a **FastAPI-based internal web application**.
 
-The application is designed with an API-first architecture so that emails can later be retrieved from a real email provider such as **Microsoft Graph API**.
-
 Since Microsoft Graph mailbox access is not currently available, the project uses a **mock email provider API** during development. This allows the full AI workflow, dashboard, audit logging, tagging, reviewing, and exporting features to be built and tested now.
 
 Later, when Microsoft Graph access is provided, only the email provider integration layer needs to be replaced.

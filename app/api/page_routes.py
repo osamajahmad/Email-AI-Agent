@@ -11,6 +11,7 @@ from app.services.gemini_service import get_model_status
 
 router = APIRouter()
 
+# Tell FastAPI where the HTML template files are stored
 templates = Jinja2Templates(directory="app/templates")
 
 
@@ -31,16 +32,18 @@ def dashboard(request: Request):
             status_code=303,
         )
 
+    # Load emails through the provider layer 
     emails = get_emails()
     active_provider = get_active_email_provider()
 
+    # Render dashboard.html and pass the data into the template
     return templates.TemplateResponse(
         request=request,
         name="dashboard.html",
         context={
-            "emails": emails,
-            "active_provider": active_provider,
-            "model_status": get_model_status(),
-            "current_user": demo_user,
+            "emails": emails, # Emails
+            "active_provider": active_provider, # The current provider
+            "model_status": get_model_status(), # The model status
+            "current_user": demo_user, # The current user
         },
     )

@@ -411,6 +411,24 @@
             .replaceAll(" ", "-");
     }
 
+    function renderTagPills(email) {
+        const tags = Array.isArray(email.tags) ? email.tags : [];
+
+        if (!tags.length) {
+            return "";
+        }
+
+        return `
+            <div class="tag-pill-list">
+                ${tags.map(tag => `
+                    <span class="tag-pill">
+                        ${escapeHtml(tag)}
+                    </span>
+                `).join("")}
+            </div>
+        `;
+    }
+
     function updateWorkspaceMode() {
         const appShell = document.querySelector(".app-shell");
 
@@ -585,7 +603,7 @@
 
                             ${isReviewed ? `<span class="reviewed-pill">Reviewed</span>` : ""}
                             ${email.starred ? `<span class="reviewed-pill">Starred</span>` : ""}
-                            ${email.tags && email.tags.length ? `<span class="reviewed-pill">Tagged</span>` : ""}
+                            ${renderTagPills(email)}
                         </div>
                     </div>
                 </button>
@@ -656,6 +674,8 @@
                         ${email.reviewed ? `<span class="reviewed-pill">Reviewed</span>` : ""}
                         ${email.starred ? `<span class="reviewed-pill">Starred</span>` : ""}
                     </div>
+
+                    ${renderTagPills(email)}
                 </div>
 
                 <div class="preview-icon-actions">
@@ -699,9 +719,15 @@
             </article>
 
             <div class="preview-actions">
-                <button class="button primary" type="button" onclick="markReviewed('${email.id}', 'preview')">
-                    ✓ Mark as Reviewed
-                </button>
+                ${
+                    email.reviewed
+                    ? `<button class="button primary" type="button" disabled>
+                           ✓ Reviewed
+                       </button>`
+                    : `<button class="button primary" type="button" onclick="markReviewed('${email.id}', 'preview')">
+                           ✓ Mark as Reviewed
+                       </button>`
+                }
 
                 <button class="button secondary" type="button" onclick="openTagModal('${email.id}')">
                     🏷 Tag
@@ -737,7 +763,11 @@
     }
 
     function runSuggestedPrompt(prompt) {
-        fillPrompt(prompt);
+        const input = document.getElementById("promptInput");
+
+        // Suggested prompts should submit immediately instead of staying in the typing area.
+        input.value = "";
+
         askAgent(prompt);
     }
 
@@ -886,6 +916,47 @@
         }
     }
 
+    function renderAgentResultCard(email) {
+        return `
+            <div class="ai-result-card ${email.reviewed ? "reviewed-result" : ""}" data-email-id="${escapeHtml(email.id)}">
+                <div class="ai-result-card-top">
+                    <div>
+                        <strong>${escapeHtml(email.sender)}</strong>
+                        <span>${escapeHtml(email.date)}</span>
+                    </div>
+
+                    <span class="confidence-pill">${escapeHtml(email.confidence_score || 0)}%</span>
+                </div>
+
+                <h3>${escapeHtml(email.subject)}</h3>
+
+                <p>${escapeHtml(email.summary || email.preview || "")}</p>
+
+                <div class="ai-result-meta">
+                    <span class="badge badge-${getCategoryClass(email.category)}">
+                        ${escapeHtml(email.category || "Other")}
+                    </span>
+
+                    ${email.reviewed ? `<span class="reviewed-pill">Reviewed</span>` : ""}
+                </div>
+
+                ${renderTagPills(email)}
+
+                <div class="ai-result-actions">
+                    <button type="button" onclick="selectEmail('${email.id}', true)">Open</button>
+                    <button type="button" onclick="window.location.href='/threads/${email.thread_id}'">Thread</button>
+                    ${
+                        email.reviewed
+                        ? `<button type="button" disabled>Reviewed</button>`
+                        : `<button type="button" onclick="markReviewed('${email.id}', 'ai_panel')">Review</button>`
+                    }
+                    <button type="button" onclick="openTagModal('${email.id}')">Tag</button>
+                    <button type="button" onclick="exportSingle('${email.id}')">Export</button>
+                </div>
+            </div>
+        `;
+    }
+
     function addAgentAnswer(agentResult, results) {
         const chatArea = document.getElementById("chatArea");
         const message = document.createElement("div");
@@ -893,38 +964,7 @@
         message.className = "message-row assistant-message-row";
 
         const resultCards = results.slice(0, 6).map(email => {
-            return `
-                <div class="ai-result-card ${email.reviewed ? "reviewed-result" : ""}">
-                    <div class="ai-result-card-top">
-                        <div>
-                            <strong>${escapeHtml(email.sender)}</strong>
-                            <span>${escapeHtml(email.date)}</span>
-                        </div>
-
-                        <span class="confidence-pill">${escapeHtml(email.confidence_score || 0)}%</span>
-                    </div>
-
-                    <h3>${escapeHtml(email.subject)}</h3>
-
-                    <p>${escapeHtml(email.summary || email.preview || "")}</p>
-
-                    <div class="ai-result-meta">
-                        <span class="badge badge-${getCategoryClass(email.category)}">
-                            ${escapeHtml(email.category || "Other")}
-                        </span>
-
-                        ${email.reviewed ? `<span class="reviewed-pill">Reviewed</span>` : ""}
-                    </div>
-
-                    <div class="ai-result-actions">
-                        <button type="button" onclick="selectEmail('${email.id}', true)">Open</button>
-                        <button type="button" onclick="window.location.href='/threads/${email.thread_id}'">Thread</button>
-                        <button type="button" onclick="markReviewed('${email.id}', 'ai_panel')">Review</button>
-                        <button type="button" onclick="openTagModal('${email.id}')">Tag</button>
-                        <button type="button" onclick="exportSingle('${email.id}')">Export</button>
-                    </div>
-                </div>
-            `;
+            return renderAgentResultCard(email);
         }).join("");
 
         message.innerHTML = `
@@ -997,17 +1037,11 @@
 
     function refreshLatestAgentCards() {
         document.querySelectorAll(".ai-result-card").forEach(card => {
-            const cardSubject = card.querySelector("h3")?.textContent;
+            const emailId = card.dataset.emailId;
+            const matched = latestAgentResults.find(email => email.id === emailId);
 
-            const matched = latestAgentResults.find(email => email.subject === cardSubject);
-
-            if (matched && matched.reviewed) {
-                card.classList.add("reviewed-result");
-
-                if (!card.querySelector(".reviewed-pill")) {
-                    const meta = card.querySelector(".ai-result-meta");
-                    meta.insertAdjacentHTML("beforeend", `<span class="reviewed-pill">Reviewed</span>`);
-                }
+            if (matched) {
+                card.outerHTML = renderAgentResultCard(matched);
             }
         });
     }
@@ -1082,6 +1116,7 @@
         updateEmailInState(data.email);
         closeTagModal();
         renderAll();
+        refreshLatestAgentCards();
 
         showToast("Tag added successfully. Audit entry created.");
     }
@@ -1314,7 +1349,7 @@
                             </span>
 
                             ${email.reviewed ? `<span class="reviewed-pill">Reviewed</span>` : ""}
-                            ${email.tags && email.tags.length ? `<span class="reviewed-pill">Tagged</span>` : ""}
+                            ${renderTagPills(email)}
                         </div>
                     </div>
                 </button>

@@ -52,10 +52,10 @@ def ask_agent_fallback(
     )
 
 
-@router.post("/api/agent/ask")
+@router.post("/api/agent/ask") # Only accepts POST requests
 def ask_agent_api(
-    payload: AgentAskRequest,
-    demo_user: str = Depends(require_demo_user),
+    payload: AgentAskRequest, # Body must match the AgentAskRequest
+    demo_user: str = Depends(require_demo_user), # User must be logged in
 ):
     """
     Interactive API endpoint.
@@ -73,19 +73,21 @@ def ask_agent_api(
             detail="Prompt is required.",
         )
 
-    emails = get_emails()
+    emails = get_emails() # Gets the emails from the provider layer
 
     agent_result = run_email_agent(
         user_prompt=prompt,
         emails=emails,
     )
 
+    # Stores the prompt, user, matched emails, and timestampt in audit logs
     log_prompt(
         prompt=prompt,
         agent_result=agent_result,
         user=demo_user,
     )
 
+    # Sends the AI result back to the frontend 
     return {
         "success": True,
         "prompt": prompt,

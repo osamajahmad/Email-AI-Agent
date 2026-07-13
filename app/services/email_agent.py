@@ -6,7 +6,7 @@ from app.services.gemini_service import (
     get_model_status,
 )
 
-
+# This function prepares each email before sending it to Gemini
 def prepare_email_for_agent(email):
     """
     Prepare email data before sending it to the AI model.
@@ -20,12 +20,13 @@ def prepare_email_for_agent(email):
         "recipient_email": email.get("recipient_email", ""),
         "subject": email.get("subject", ""),
         "date": email.get("date", ""),
-        "body": email.get("body", "")[:1500],
+        "body": email.get("body", "")[:1500], # Send only the first 1500 characters of the email body to Gemini
         "reviewed": email.get("reviewed", False),
         "tags": email.get("tags", []),
     }
 
 
+# This function bilds the full prompt sent to Gemini
 def build_agent_prompt(user_prompt, emails):
     """
     Build the structured Email AI Agent prompt for Gemini.
