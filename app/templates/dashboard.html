@@ -66,13 +66,13 @@
                 <button class="sidebar-link active" type="button" onclick="showInboxView(this)">
                     <span>✉</span>
                     <strong>Inbox</strong>
-                    <em>342</em>
+                    <em>{{ metrics.total }}</em>
                 </button>
 
                 <button class="sidebar-link" type="button" onclick="showReviewedView(this)">
                     <span>✓</span>
                     <strong>Reviewed</strong>
-                    <em>128</em>
+                    <em>{{ metrics.reviewed }}</em>
                 </button>
 
                 <button class="sidebar-link" type="button" onclick="showTaggedView(this)">
@@ -108,8 +108,15 @@
         <section class="email-list-panel">
             <div class="panel-header compact-header">
                 <div>
-                    <h1>Inbox <span>(342)</span></h1>
+                    <h1>Inbox <span>({{ metrics.total }})</span></h1>
                     <p>Recent company emails available for review.</p>
+                    <div class="provider-status-line">
+                        <strong>{{ provider_status.provider }}</strong>
+                        <span class="{% if provider_status.connected %}connected{% else %}not-connected{% endif %}">
+                            {{ provider_status.status }}
+                        </span>
+                        <small>{{ provider_status.message }}</small>
+                    </div>
                 </div>
 
                 <button class="icon-button" type="button" onclick="resetInboxView()" aria-label="Refresh inbox">
@@ -118,14 +125,37 @@
             </div>
 
             <div class="filter-chips" role="tablist" aria-label="Email filters">
-                <button class="filter-chip active" type="button" onclick="setFilter('All', this)">All <span>342</span></button>
-                <button class="filter-chip" type="button" onclick="setFilter('Subscription', this)">Subscriptions <span>86</span></button>
-                <button class="filter-chip" type="button" onclick="setFilter('Renewal', this)">Renewals <span>64</span></button>
-                <button class="filter-chip" type="button" onclick="setFilter('Invoice', this)">Invoices <span>71</span></button>
-                <button class="filter-chip" type="button" onclick="setFilter('SaaS', this)">SaaS <span>58</span></button>
-                <button class="filter-chip" type="button" onclick="setFilter('Domain', this)">Domains <span>23</span></button>
-                <button class="filter-chip" type="button" onclick="setFilter('Cloud', this)">Cloud <span>41</span></button>
-                <button class="filter-chip" type="button" onclick="setFilter('Software', this)">Software <span>37</span></button>
+                <button class="filter-chip active" type="button" onclick="setFilter('All', this)">
+                    All <span>{{ metrics.total }}</span>
+                </button>
+
+                <button class="filter-chip" type="button" onclick="setFilter('Subscription', this)">
+                    Subscriptions <span>{{ metrics.subscriptions }}</span>
+                </button>
+
+                <button class="filter-chip" type="button" onclick="setFilter('Renewal', this)">
+                    Renewals <span>{{ metrics.renewals }}</span>
+                </button>
+
+                <button class="filter-chip" type="button" onclick="setFilter('Invoice', this)">
+                    Invoices <span>{{ metrics.invoices }}</span>
+                </button>
+
+                <button class="filter-chip" type="button" onclick="setFilter('SaaS', this)">
+                    SaaS <span>{{ metrics.saas }}</span>
+                </button>
+
+                <button class="filter-chip" type="button" onclick="setFilter('Domain', this)">
+                    Domains <span>{{ metrics.domains }}</span>
+                </button>
+
+                <button class="filter-chip" type="button" onclick="setFilter('Cloud', this)">
+                    Cloud <span>{{ metrics.cloud }}</span>
+                </button>
+
+                <button class="filter-chip" type="button" onclick="setFilter('Software', this)">
+                    Software <span>{{ metrics.software }}</span>
+                </button>
             </div>
 
             <div class="list-toolbar">
@@ -464,7 +494,7 @@
         }
 
         if (unreadOnly) {
-            filtered = filtered.filter(email => !email.reviewed);
+            filtered = filtered.filter(email => email.is_read === false);
         }
 
         if (searchValue) {
@@ -957,6 +987,47 @@
         `;
     }
 
+    function renderProviderSummaryTable(agentResult) {
+        const providerSummary = agentResult.provider_summary || [];
+
+        if (agentResult.result_type !== "subscription_provider_table" || !providerSummary.length) {
+            return "";
+        }
+
+        return `
+            <div class="provider-summary-table-wrap">
+                <div class="provider-summary-header">
+                    <strong>Subscriptions grouped by provider</strong>
+                    <span>${providerSummary.length} provider${providerSummary.length === 1 ? "" : "s"}</span>
+                </div>
+
+                <table class="provider-summary-table">
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Email Count</th>
+                            <th>Latest Email Date</th>
+                            <th>Latest Subject</th>
+                            <th>Category</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        ${providerSummary.map(row => `
+                            <tr>
+                                <td>${escapeHtml(row.provider || "Unknown")}</td>
+                                <td>${escapeHtml(row.count || 0)}</td>
+                                <td>${escapeHtml(row.latest_email_date || "-")}</td>
+                                <td>${escapeHtml(row.latest_subject || "-")}</td>
+                                <td>${escapeHtml(row.category || "Subscription")}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
     function addAgentAnswer(agentResult, results) {
         const chatArea = document.getElementById("chatArea");
         const message = document.createElement("div");
@@ -966,6 +1037,8 @@
         const resultCards = results.slice(0, 6).map(email => {
             return renderAgentResultCard(email);
         }).join("");
+
+        const providerTable = renderProviderSummaryTable(agentResult);
 
         message.innerHTML = `
             <div class="assistant-avatar">✦</div>
@@ -977,18 +1050,20 @@
                     <span>${results.length} result${results.length === 1 ? "" : "s"} found · Prompt logged</span>
                 </div>
 
+                ${providerTable}
+
                 ${
                     results.length
                     ? `<div class="ai-result-list">${resultCards}</div>
                        <div class="try-next-row">
-                           <button type="button" onclick="runSuggestedPrompt('Only show high confidence matches above 90%.')">High confidence only</button>
-                           <button type="button" onclick="runSuggestedPrompt('Show only invoices from these results.')">Only invoices</button>
-                           <button type="button" onclick="openExportModal('agent')">Export results</button>
-                       </div>`
+                        <button type="button" onclick="runSuggestedPrompt('Only show high confidence matches above 90%.')">High confidence only</button>
+                        <button type="button" onclick="runSuggestedPrompt('Show only invoices from these results.')">Only invoices</button>
+                        <button type="button" onclick="openExportModal('agent')">Export results</button>
+                      </div>`
                     : `<div class="no-results-card">
-                           <strong>No matching emails found.</strong>
-                           <p>Try a broader prompt, such as invoices, renewals, SaaS, or vendors.</p>
-                       </div>`
+                            <strong>No matching emails found.</strong>
+                            <p>Try a broader prompt, such as invoices, renewals, SaaS, or vendors.</p>
+                      </div>`
                 }
             </div>
         `;

@@ -10,7 +10,15 @@ Users can ask prompts such as:
 Filter emails that are subscription based.
 ```
 
-The Email AI Agent analyzes available emails, detects subscription/renewal/invoice/license/SaaS/cloud/domain/software-related emails, summarizes the results, assigns categories and confidence scores, and allows users to open, review, tag, and export the results.
+```text
+Get unread client emails and filter out ads and unimportant emails.
+```
+
+```text
+Get subscription emails from July 1, 2026 to July 31, 2026 and group them by provider.
+```
+
+The Email AI Agent analyzes available emails, detects subscription, renewal, invoice, license, SaaS, cloud, domain, software, and client-related emails, summarizes the results, assigns categories and confidence scores, and allows users to open, review, tag, and export the results.
 
 ---
 
@@ -18,9 +26,16 @@ The Email AI Agent analyzes available emails, detects subscription/renewal/invoi
 
 This project is built as a **FastAPI-based internal web application**.
 
-Since Microsoft Graph mailbox access is not currently available, the project uses a **mock email provider API** during development. This allows the full AI workflow, dashboard, audit logging, tagging, reviewing, and exporting features to be built and tested now.
+The application uses a provider-based email architecture. During development, it can run with a mock email provider for testing and demo purposes. The project also includes provider structures for Gmail and Outlook/Microsoft Graph so the system can later connect to real mailboxes when OAuth credentials or access tokens are available.
 
-Later, when Microsoft Graph access is provided, only the email provider integration layer needs to be replaced.
+The Email AI Agent does not depend on local mailbox files. It reads emails through the provider layer, normalizes them into one internal schema, and then allows the AI agent to classify, summarize, filter, tag, review, and export email results.
+
+This update also includes the new Task 4 email integration requirements:
+
+- Integrate the email agent with Gmail/Outlook so it can be tested.
+- Check tools that can connect email accounts dynamically.
+- Get unread client emails while filtering out ads and unimportant emails.
+- Get subscription emails within a specific time period and output a table grouped by provider.
 
 ---
 
@@ -31,30 +46,54 @@ Later, when Microsoft Graph access is provided, only the email provider integrat
 - View company emails in an inbox-style dashboard.
 - Browse emails manually.
 - Select emails from the inbox list.
-- View full email content in the preview pane.
+- View full email content in the preview page.
 - Filter emails by category.
-- Search emails by sender, subject, category, or preview text.
+- Search emails by sender, subject, category, tag, or preview text.
 - Sort emails by newest, confidence score, or sender.
+- View dynamic inbox counts based on the active email provider.
 
 ### AI Agent
 
 - Ask natural language prompts.
 - AI reads the available inbox data.
-- AI detects matching emails based on meaning, not only keywords.
+- AI detects matching emails based on meaning and context.
+- Backend logic handles required task-specific flows:
+  - unread client email filtering
+  - subscription emails grouped by provider
 - AI returns structured results with:
-  - Sender
-  - Subject
-  - Date
-  - Summary
-  - Category
-  - Confidence score
-  - Suggested action
+  - sender
+  - subject
+  - date
+  - summary
+  - category
+  - confidence score
+  - reason
+  - suggested action
 - AI results appear inside the right-side assistant panel.
-- The inbox and email preview stay visible while the AI works.
+- The inbox stays visible while the AI works.
+
+### Email Provider Layer
+
+The project supports provider switching through the `EMAIL_PROVIDER` environment variable.
+
+Supported provider modes:
+
+```env
+EMAIL_PROVIDER=mock
+EMAIL_PROVIDER=gmail
+EMAIL_PROVIDER=microsoft_graph
+```
+
+Current provider support:
+
+- Mock provider for local development and demo data.
+- Gmail provider structure for Gmail mailbox integration.
+- Microsoft Graph provider structure for Outlook/Microsoft 365 mailbox integration.
+- Provider connection status displayed in the dashboard.
 
 ### Email Actions
 
-Users can perform actions from the email preview or AI result cards:
+Users can perform actions from email cards or detail pages:
 
 - Open email
 - View thread
@@ -101,8 +140,8 @@ The project supports CSV export for:
 | Environment Variables | python-dotenv |
 | Form Handling | python-multipart |
 | Frontend | HTML, CSS, JavaScript |
-| Email Provider Now | Mock Provider API |
-| Email Provider Later | Microsoft Graph API |
+| Email Provider Layer | Mock Provider, Gmail Provider, Microsoft Graph Provider |
+| Dynamic Email Tool Research | Nylas / Unified Email API options documented |
 
 ---
 
@@ -114,9 +153,11 @@ Task 4/
 ├── main.py
 ├── requirements.txt
 ├── README.md
-├── .env
 ├── .env.example
 ├── .gitignore
+│
+├── docs/
+│   └── email-integration-options.md
 │
 ├── app/
 │   ├── __init__.py
@@ -129,6 +170,11 @@ Task 4/
 │   │   ├── mock_provider_routes.py
 │   │   └── page_routes.py
 │   │
+│   ├── schemas/
+│   │   ├── __init__.py
+│   │   ├── agent_schema.py
+│   │   └── email_schema.py
+│   │
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── audit_service.py
@@ -136,12 +182,10 @@ Task 4/
 │   │   ├── email_provider.py
 │   │   ├── export_service.py
 │   │   ├── gemini_service.py
+│   │   ├── gmail_provider.py
 │   │   ├── microsoft_graph_provider.py
 │   │   ├── mock_email_provider.py
 │   │   └── ui_state.py
-│   │
-│   ├── schemas/
-│   │   └── __init__.py
 │   │
 │   ├── templates/
 │   │   ├── audit_logs.html
@@ -160,55 +204,46 @@ Task 4/
 
 ### `main.py`
 
-The FastAPI application entry point.  
+The FastAPI application entry point.
+
 It starts the backend server, mounts static files, and includes all route modules.
 
 ### `app/api/`
 
 Contains all FastAPI route files.
 
-- `page_routes.py`  
-  Handles main dashboard page rendering.
+| File | Purpose |
+|---|---|
+| `page_routes.py` | Handles main dashboard and page rendering |
+| `agent_routes.py` | Handles AI Agent prompt requests |
+| `email_routes.py` | Handles email actions such as open, review, tag, thread view, and export |
+| `audit_routes.py` | Handles audit log page display |
+| `mock_provider_routes.py` | Provides the mock email provider API used during development |
 
-- `agent_routes.py`  
-  Handles AI Agent prompt requests.
+### `app/schemas/`
 
-- `email_routes.py`  
-  Handles email actions such as open, review, tag, thread view, and export.
+Contains Pydantic schemas.
 
-- `audit_routes.py`  
-  Handles audit log page display.
-
-- `mock_provider_routes.py`  
-  Provides the mock email provider API used during development.
+| File | Purpose |
+|---|---|
+| `email_schema.py` | Defines the normalized email structure used across all providers |
+| `agent_schema.py` | Defines the AI Agent request body, including prompt, mode, and optional date range |
 
 ### `app/services/`
 
 Contains the business logic.
 
-- `email_agent.py`  
-  Main AI Agent logic. Builds the AI prompt, sends emails to Gemini, and merges AI results with original email data.
-
-- `gemini_service.py`  
-  Handles communication with the Gemini AI model.
-
-- `email_provider.py`  
-  Provider selection layer. Decides whether to use the mock provider now or Microsoft Graph later.
-
-- `mock_email_provider.py`  
-  Contains mock email data and mock email actions.
-
-- `microsoft_graph_provider.py`  
-  Placeholder for future Microsoft Graph integration.
-
-- `audit_service.py`  
-  Handles in-memory audit logging.
-
-- `export_service.py`  
-  Builds CSV exports.
-
-- `ui_state.py`  
-  Stores temporary UI state for the latest AI Agent result during development.
+| File | Purpose |
+|---|---|
+| `email_agent.py` | Main AI Agent logic, including unread client filtering and subscription grouping |
+| `gemini_service.py` | Handles communication with the Gemini AI model |
+| `email_provider.py` | Provider selection layer for mock, Gmail, and Microsoft Graph |
+| `gmail_provider.py` | Gmail API provider structure |
+| `microsoft_graph_provider.py` | Microsoft Graph / Outlook provider structure |
+| `mock_email_provider.py` | Mock email data and mock email actions |
+| `audit_service.py` | In-memory audit logging |
+| `export_service.py` | CSV export generation |
+| `ui_state.py` | Temporary UI state for latest AI Agent result during development |
 
 ### `app/templates/`
 
@@ -218,11 +253,19 @@ Contains HTML templates rendered by FastAPI/Jinja2.
 
 Contains frontend CSS.
 
+### `docs/`
+
+Contains supporting documentation.
+
+| File | Purpose |
+|---|---|
+| `email-integration-options.md` | Documents Gmail, Outlook, Nylas, and IMAP integration options |
+
 ---
 
 ## How the System Works
 
-### Current Development Flow
+### Provider-Based Email Flow
 
 ```text
 User
@@ -231,40 +274,59 @@ FastAPI Dashboard
  ↓
 Email Provider Layer
  ↓
-Mock Email Provider API
+Selected Provider
+ ├── Mock Provider
+ ├── Gmail Provider
+ └── Microsoft Graph Provider
+ ↓
+Normalized Email Schema
  ↓
 Email AI Agent
  ↓
-Gemini AI Model
+Gemini AI Model / Backend Filtering Logic
  ↓
-Structured AI Results
+Structured Results
  ↓
-Dashboard / AI Panel
+Dashboard / AI Panel / Export
 ```
 
-### Future Production Flow
+The provider layer allows the application to switch between mock data, Gmail, and Outlook/Microsoft Graph using the `EMAIL_PROVIDER` environment variable.
 
-```text
-User
- ↓
-FastAPI Dashboard
- ↓
-Email Provider Layer
- ↓
-Microsoft Graph API
- ↓
-Real Microsoft 365 Emails
- ↓
-Email AI Agent
- ↓
-Gemini AI Model
- ↓
-Structured AI Results
- ↓
-Dashboard / AI Panel
-```
+The same AI agent logic works across providers because all provider emails are normalized into the same internal schema.
 
-The important point is that the AI Agent does not directly depend on local email files. It calls the provider layer. During development, that provider uses the mock API. Later, the same provider layer can be connected to Microsoft Graph.
+---
+
+## Normalized Email Schema
+
+All providers are converted into one internal email format.
+
+Important fields include:
+
+| Field | Purpose |
+|---|---|
+| `provider` | Source provider such as `mock`, `gmail`, or `microsoft_graph` |
+| `provider_message_id` | Original provider message ID |
+| `provider_thread_id` | Original provider thread/conversation ID |
+| `sender` | Sender display name |
+| `sender_email` | Sender email address |
+| `recipient_email` | Recipient email address |
+| `subject` | Email subject |
+| `date` | Human-readable email date |
+| `received_at` | ISO-style received datetime |
+| `body` | Email body or snippet |
+| `preview` | Short preview text |
+| `is_read` | Mailbox read/unread status from Gmail or Outlook |
+| `reviewed` | Internal Email AI Agent review status |
+| `tags` | Internal tags applied in the app |
+| `is_client_related` | Whether the email is considered client-related |
+| `is_subscription_related` | Whether the email is related to a subscription |
+| `is_unimportant_or_ad` | Whether the email is an ad, newsletter, promotion, or unimportant |
+| `detected_provider` | Subscription provider detected from the email |
+
+The app separates `is_read` from `reviewed`.
+
+- `is_read` comes from the mailbox provider.
+- `reviewed` is an internal workflow status in the Email AI Agent.
 
 ---
 
@@ -311,6 +373,11 @@ Example:
 
 ```env
 APP_MODE=development
+
+# Provider options:
+# mock
+# gmail
+# microsoft_graph
 EMAIL_PROVIDER=mock
 
 SECRET_KEY=dev_secret_key_change_later
@@ -320,6 +387,11 @@ MOCK_PROVIDER_BASE_URL=http://127.0.0.1:8000
 
 GOOGLE_API_KEY=your_google_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
+
+# Temporary provider tokens for testing.
+# In production, these should be replaced by OAuth connect flows and secure token storage.
+GMAIL_ACCESS_TOKEN=
+MS_GRAPH_ACCESS_TOKEN=
 ```
 
 ---
@@ -330,6 +402,11 @@ The `.env.example` file should not contain real secrets.
 
 ```env
 APP_MODE=development
+
+# Provider options:
+# mock
+# gmail
+# microsoft_graph
 EMAIL_PROVIDER=mock
 
 SECRET_KEY=your_secret_key_here
@@ -339,6 +416,9 @@ MOCK_PROVIDER_BASE_URL=http://127.0.0.1:8000
 
 GOOGLE_API_KEY=your_google_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
+
+GMAIL_ACCESS_TOKEN=
+MS_GRAPH_ACCESS_TOKEN=
 ```
 
 ---
@@ -354,6 +434,146 @@ Open:
 ```text
 http://127.0.0.1:8000
 ```
+
+---
+
+## Email Provider Modes
+
+### Mock Provider
+
+Used for local development and demo testing.
+
+```env
+EMAIL_PROVIDER=mock
+```
+
+Expected result:
+
+- Dashboard loads mock emails.
+- Agent can test unread client email filtering.
+- Agent can test subscription emails grouped by provider.
+- No external email credentials are required.
+
+---
+
+### Gmail Provider
+
+Used for Gmail integration structure.
+
+```env
+EMAIL_PROVIDER=gmail
+GMAIL_ACCESS_TOKEN=
+```
+
+Expected result without token:
+
+```text
+Gmail — Not connected
+Inbox (0)
+```
+
+This confirms that the app switched away from mock data and is ready for Gmail connection when credentials are available.
+
+---
+
+### Outlook / Microsoft Graph Provider
+
+Used for Outlook or Microsoft 365 integration structure.
+
+```env
+EMAIL_PROVIDER=microsoft_graph
+MS_GRAPH_ACCESS_TOKEN=
+```
+
+Expected result without token:
+
+```text
+Outlook / Microsoft Graph — Not connected
+Inbox (0)
+```
+
+OAuth connection buttons and secure token storage can be added when testing credentials are provided.
+
+---
+
+## Task 4 Update: Email Integration Requirements
+
+This update addresses the email integration requirements added after the original Task 4 submission.
+
+### 1. Gmail/Outlook Integration Structure
+
+The project now includes provider files for:
+
+- Gmail
+- Outlook / Microsoft Graph
+- Mock provider
+
+The active provider is controlled by:
+
+```env
+EMAIL_PROVIDER=mock
+EMAIL_PROVIDER=gmail
+EMAIL_PROVIDER=microsoft_graph
+```
+
+The dashboard also displays provider connection status, such as:
+
+```text
+Mock Provider — Connected
+Gmail — Not connected
+Outlook / Microsoft Graph — Not connected
+```
+
+---
+
+### 2. Dynamic Email Connection Research
+
+The file below documents possible tools and approaches for connecting email accounts dynamically:
+
+```text
+docs/email-integration-options.md
+```
+
+It compares:
+
+- Direct Gmail API integration
+- Direct Outlook / Microsoft Graph integration
+- Unified email APIs such as Nylas
+- IMAP fallback
+
+---
+
+### 3. Unread Client Email Agent
+
+The agent supports prompts such as:
+
+```text
+Get unread client emails and filter out ads and unimportant emails.
+```
+
+The backend separates:
+
+- `is_read`: mailbox read/unread state from Gmail or Outlook
+- `reviewed`: internal review status inside the Email AI Agent
+
+The agent filters out newsletters, promotions, ads, and unimportant emails before returning unread client-related emails.
+
+---
+
+### 4. Subscription Emails by Provider
+
+The agent supports prompts such as:
+
+```text
+Get subscription emails from July 1, 2026 to July 31, 2026 and group them by provider.
+```
+
+The result includes:
+
+- AI summary
+- Table of subscriptions grouped by provider
+- Related email cards for detailed review
+- Export option
 
 ---
 
@@ -413,7 +633,19 @@ Example JSON request:
 
 ```json
 {
-  "prompt": "Filter emails that are subscription based."
+  "prompt": "Get subscription emails from July 1, 2026 to July 31, 2026 and group them by provider.",
+  "mode": "subscriptions_by_provider",
+  "start_date": "2026-07-01",
+  "end_date": "2026-07-31"
+}
+```
+
+Example unread client request:
+
+```json
+{
+  "prompt": "Get unread client emails and filter out ads and unimportant emails.",
+  "mode": "unread_clients"
 }
 ```
 
@@ -477,8 +709,9 @@ You will see:
 - Top navigation bar
 - Sidebar navigation
 - Inbox email list
-- Selected email preview
 - AI Agent panel on the right
+- Provider connection status
+- Dynamic email counts
 
 ---
 
@@ -486,7 +719,7 @@ You will see:
 
 Click any email from the inbox list.
 
-The selected email will open in the preview pane without leaving the dashboard.
+The selected email can be opened in its detail page or reviewed from the available actions.
 
 ---
 
@@ -510,7 +743,41 @@ The AI Agent will:
 
 ---
 
-### 4. Open AI Results
+### 4. Find Unread Client Emails
+
+Use this prompt:
+
+```text
+Get unread client emails and filter out ads and unimportant emails.
+```
+
+The agent will:
+
+1. Check unread emails.
+2. Keep client-related emails.
+3. Remove newsletters, ads, promotions, and unimportant messages.
+4. Return only important unread client emails.
+
+---
+
+### 5. Find Subscription Emails by Provider
+
+Use this prompt:
+
+```text
+Get subscription emails from July 1, 2026 to July 31, 2026 and group them by provider.
+```
+
+The agent will return:
+
+1. A summary of what it found.
+2. A table grouped by provider.
+3. Related subscription email cards.
+4. Export option.
+
+---
+
+### 6. Open AI Results
 
 From the AI result cards, click:
 
@@ -520,23 +787,21 @@ From the AI result cards, click:
 - Tag
 - Export
 
-The main email preview remains visible and the AI panel stays open.
-
 ---
 
-### 5. Mark Email as Reviewed
+### 7. Mark Email as Reviewed
 
 Click:
 
 ```text
-Mark as Reviewed
+Review
 ```
 
 The system updates the email status and creates an audit log entry.
 
 ---
 
-### 6. Add Tags
+### 8. Add Tags
 
 Click:
 
@@ -554,11 +819,11 @@ The tag is applied and logged.
 
 ---
 
-### 7. Export Emails
+### 9. Export Emails
 
 Click export from:
 
-- Email preview
+- Email card
 - AI result card
 - Export modal
 - Direct export endpoint
@@ -568,6 +833,14 @@ CSV export will be generated.
 ---
 
 ## Example Prompts
+
+```text
+Get unread client emails and filter out ads and unimportant emails.
+```
+
+```text
+Get subscription emails from July 1, 2026 to July 31, 2026 and group them by provider.
+```
 
 ```text
 Filter emails that are subscription based.
@@ -607,23 +880,37 @@ Find cloud hosting invoices.
 
 The mock provider currently includes realistic sample emails from:
 
+- Client contacts
+- Marketing newsletters
+- Promotional emails
 - Adobe Billing
-- AWS
-- GoDaddy
-- Notion
-- Zoom
-- Microsoft Azure
-- Atlassian
-- DigitalOcean
+- AWS Billing
+- GoDaddy Renewals
+- Notion Billing
+- Zoom Billing
 
 These emails cover categories such as:
 
+- Client Email
+- Client Support
+- Newsletter
+- Promotion
 - Subscription
 - Invoice
-- Domain
-- License
-- Cloud
+- Domain Renewal
+- License Renewal
+- Cloud Invoice
 - Software Renewal
+
+The mock data is designed to test the two required Task 4 update prompts:
+
+```text
+Get unread client emails and filter out ads and unimportant emails.
+```
+
+```text
+Get subscription emails from July 1, 2026 to July 31, 2026 and group them by provider.
+```
 
 ---
 
@@ -631,7 +918,7 @@ These emails cover categories such as:
 
 The Gemini model is instructed to return structured JSON.
 
-Expected AI output includes:
+General AI output includes:
 
 ```json
 {
@@ -647,14 +934,33 @@ Expected AI output includes:
   ],
   "matched_emails": [
     {
-      "id": "email_004",
+      "id": "email_005",
       "category": "Subscription",
-      "summary": "Notion sent a receipt for a renewed workspace subscription.",
-      "confidence_score": 94,
-      "reason": "The email mentions workspace subscription renewal and payment receipt.",
-      "suggested_action": "Review the receipt and confirm billing details."
+      "summary": "Adobe Billing sent an email about an upcoming Creative Cloud renewal.",
+      "confidence_score": 95,
+      "reason": "The email mentions a subscription renewal and payment amount.",
+      "suggested_action": "Review the renewal details and confirm whether this subscription should continue."
     }
   ]
+}
+```
+
+Task-specific backend results can also include:
+
+```json
+{
+  "result_type": "subscription_provider_table",
+  "agent_answer": "I found 4 subscription-related emails from July 01, 2026 to July 31, 2026, grouped by 4 providers.",
+  "provider_summary": [
+    {
+      "provider": "Adobe",
+      "count": 1,
+      "latest_email_date": "July 14, 2026",
+      "latest_subject": "Your Creative Cloud plan renewal",
+      "category": "Subscription"
+    }
+  ],
+  "emails": []
 }
 ```
 
@@ -662,49 +968,100 @@ Expected AI output includes:
 
 ## Current Development Notes
 
-### Mock Provider Strategy
+### Provider Strategy
 
-The project currently uses a mock provider because Microsoft Graph access is not available yet.
+The project uses a provider-based architecture.
 
-This is intentional.
+Currently supported provider modes:
 
-The app is already built around a provider layer:
+- `mock`
+- `gmail`
+- `microsoft_graph`
 
-```text
-email_provider.py
-```
+The mock provider is used for demo and testing.
 
-When Microsoft Graph access becomes available, the mock provider can be replaced with a real provider implementation without changing the main AI Agent logic or UI workflow.
+Gmail and Microsoft Graph provider structures are included, but real mailbox testing requires valid access tokens or OAuth credentials.
+
+The AI Agent does not directly depend on a specific email provider. It receives normalized email data from `email_provider.py`, so provider-specific logic stays isolated.
 
 ---
 
-## Future Microsoft Graph Integration
+## Gmail Integration Status
 
-The file:
+The file below contains the Gmail provider structure:
+
+```text
+app/services/gmail_provider.py
+```
+
+Current Gmail provider support:
+
+- Reads `GMAIL_ACCESS_TOKEN` from environment variables.
+- Lists Gmail messages through the Gmail provider structure.
+- Normalizes Gmail message metadata into the internal email schema.
+- Shows `Gmail — Not connected` when no token is configured.
+- Returns `Inbox (0)` instead of falling back to mock data when Gmail is selected without a token.
+
+Expected provider switch:
+
+```env
+EMAIL_PROVIDER=gmail
+```
+
+Full OAuth login/connect flow is not completed yet.
+
+---
+
+## Microsoft Graph Integration Status
+
+The file below contains the Microsoft Graph provider structure:
 
 ```text
 app/services/microsoft_graph_provider.py
 ```
 
-is prepared as a placeholder for the future Microsoft Graph integration.
+Current Microsoft Graph provider support:
 
-Later, this service should:
+- Reads `MS_GRAPH_ACCESS_TOKEN` from environment variables.
+- Lists Outlook/Microsoft 365 messages through the Microsoft Graph provider structure.
+- Normalizes Graph message metadata into the internal email schema.
+- Shows `Outlook / Microsoft Graph — Not connected` when no token is configured.
+- Returns `Inbox (0)` instead of falling back to mock data when Microsoft Graph is selected without a token.
 
-1. Authenticate with Microsoft.
-2. Read emails from Microsoft 365 mailboxes.
-3. Normalize Microsoft Graph email data into the same structure used by the app.
-4. Support real mailbox actions where permitted:
-   - Read emails
-   - View threads
-   - Mark as reviewed
-   - Add tags/categories
-   - Export data
-
-Expected future provider switch:
+Expected provider switch:
 
 ```env
 EMAIL_PROVIDER=microsoft_graph
 ```
+
+Full OAuth login/connect flow is not completed yet.
+
+---
+
+## Dynamic Email Connection Research
+
+The document below explains possible approaches for connecting different email providers dynamically:
+
+```text
+docs/email-integration-options.md
+```
+
+It compares:
+
+| Option | Description | Best Use |
+|---|---|---|
+| Direct Gmail API | Official Gmail integration | Google Workspace / Gmail accounts |
+| Direct Microsoft Graph | Official Outlook/Microsoft 365 integration | Microsoft 365 / Outlook accounts |
+| Nylas | Unified email API for multiple providers | Dynamic multi-provider email connection |
+| IMAP fallback | Generic email protocol | Backup option only |
+
+Recommended current approach:
+
+1. Keep mock provider for demo and testing.
+2. Add direct Gmail and Outlook/Microsoft Graph provider structures.
+3. Normalize all emails into one internal schema.
+4. Use Nylas as the strongest researched option for future dynamic multi-provider email connection.
+5. Add OAuth and secure token storage when testing credentials are available.
 
 ---
 
@@ -726,19 +1083,31 @@ logs/
 
 Only `.env.example` should be committed.
 
+Do not commit:
+
+- real API keys
+- Gmail access tokens
+- Microsoft Graph access tokens
+- virtual environment folders
+- cache files
+- logs
+- exported files containing sensitive email content
+
 ---
 
 ## Limitations
 
 Current limitations:
 
-- Emails are from the mock provider, not a real mailbox.
+- Gmail and Outlook provider structures are implemented, but full OAuth login/connect flow is not completed yet.
+- Real Gmail/Outlook testing requires valid access tokens or OAuth credentials.
+- Reviewed status and tags are stored internally during development.
 - Audit logs are stored in memory, so they reset when the server restarts.
-- Email review/tag state is stored in memory during development.
-- Microsoft Graph integration is not completed yet.
+- Email action persistence should later be moved to a database.
+- Provider labels/categories are not synced back to Gmail or Outlook yet.
 - Enterprise authentication is represented as a frontend/demo concept and is not fully implemented yet.
 - Export currently supports CSV only.
-- Some pages such as Reports, Settings, and advanced permissions are planned but not fully implemented.
+- Reports, Settings, and advanced permissions are planned but not fully implemented.
 
 ---
 
@@ -746,16 +1115,18 @@ Current limitations:
 
 Future improvements may include:
 
-- Microsoft Graph mailbox integration
-- Microsoft enterprise authentication
-- Persistent database for audit logs and email action history
-- Role-based access control
-- Real Reports dashboard
-- Advanced filtering
-- Export to Excel/PDF
-- AI follow-up context memory
-- AI result history
-- Better production deployment configuration
+- Full OAuth connection flow for Gmail.
+- Full OAuth connection flow for Outlook/Microsoft Graph.
+- Secure token storage.
+- Database persistence for reviewed status, tags, and audit logs.
+- Role-based access control.
+- Real Reports dashboard.
+- Advanced filtering.
+- Export to Excel/PDF.
+- AI follow-up context memory.
+- AI result history.
+- Provider label/category sync.
+- Production deployment configuration.
 
 ---
 
@@ -769,19 +1140,70 @@ git status
 
 Make sure `.env` and `.venv/` are not included.
 
-Then run:
+Run the app:
 
 ```powershell
 uvicorn main:app --reload
 ```
 
-Test:
+Test the main pages:
 
 ```text
 http://127.0.0.1:8000
 http://127.0.0.1:8000/docs
 http://127.0.0.1:8000/mock-provider/emails
 http://127.0.0.1:8000/audit-logs
+```
+
+Test with mock provider:
+
+```env
+EMAIL_PROVIDER=mock
+```
+
+Expected:
+
+```text
+Inbox contains mock emails.
+Mock Provider — Connected.
+```
+
+Test with Gmail provider and no token:
+
+```env
+EMAIL_PROVIDER=gmail
+GMAIL_ACCESS_TOKEN=
+```
+
+Expected:
+
+```text
+Inbox (0)
+Gmail — Not connected
+```
+
+Test with Microsoft Graph provider and no token:
+
+```env
+EMAIL_PROVIDER=microsoft_graph
+MS_GRAPH_ACCESS_TOKEN=
+```
+
+Expected:
+
+```text
+Inbox (0)
+Outlook / Microsoft Graph — Not connected
+```
+
+Test required prompts:
+
+```text
+Get unread client emails and filter out ads and unimportant emails.
+```
+
+```text
+Get subscription emails from July 1, 2026 to July 31, 2026 and group them by provider.
 ```
 
 ---
@@ -803,7 +1225,7 @@ git add .
 Commit:
 
 ```powershell
-git commit -m "Initial commit - Email AI Agent FastAPI app"
+git commit -m "Update Email AI Agent with provider architecture and Task 4 integration requirements"
 ```
 
 Connect remote repository:

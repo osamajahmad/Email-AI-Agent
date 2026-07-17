@@ -36,8 +36,9 @@ def ask_agent_fallback(
     emails = get_emails()
 
     agent_result = run_email_agent(
-        user_prompt=cleaned_prompt,
-        emails=emails,
+    user_prompt=cleaned_prompt,
+    emails=emails,
+    mode="general",
     )
 
     log_prompt(
@@ -76,8 +77,11 @@ def ask_agent_api(
     emails = get_emails() # Gets the emails from the provider layer
 
     agent_result = run_email_agent(
-        user_prompt=prompt,
-        emails=emails,
+    user_prompt=prompt,
+    emails=emails,
+    mode=payload.mode,
+    start_date=payload.start_date,
+    end_date=payload.end_date,
     )
 
     # Stores the prompt, user, matched emails, and timestampt in audit logs
